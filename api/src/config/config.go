@@ -10,16 +10,18 @@ import (
 )
 
 var (
-	// Conexão com MySQL
-	StringConexaoDB = ""
+	// StringConexaoBanco é a string de conexão com o MySQL
+	StringConexaoBanco = ""
 
-	// Porta API
+	// Porta onde a API vai estar rodando
 	Porta = 0
+
+	// SecretKey é a chave que vai ser usada para assinar o token
+	// SecretKey []byte
 )
 
-// Inicializa variáveis de ambiente
+// Carregar vai inicializar as variáveis de ambiente
 func Carregar() {
-
 	var erro error
 
 	if erro = godotenv.Load(); erro != nil {
@@ -31,8 +33,12 @@ func Carregar() {
 		Porta = 9000
 	}
 
-	StringConexaoDB = fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local",
+	StringConexaoBanco = fmt.Sprintf("%s:%s@%s/%s?charset=utf8&parseTime=True&loc=Local",
 		os.Getenv("DB_USUARIO"),
 		os.Getenv("DB_SENHA"),
-		os.Getenv("DB_NOME"))
+		os.Getenv("DB_CONTAINER"),
+		os.Getenv("DB_NOME"),
+	)
+
+	// SecretKey = []byte(os.Getenv("SECRET_KEY"))
 }
