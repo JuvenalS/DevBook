@@ -11,9 +11,6 @@
 # Volume Docker
 data/
 
-# Docker-Compose
-*.yaml
-
 # misc
 *.env
 

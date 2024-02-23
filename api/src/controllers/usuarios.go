@@ -4,49 +4,69 @@ import (
 	"api/src/banco"
 	"api/src/modelos"
 	"api/src/repositorios"
+	"api/src/respostas"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 // Insere um usuário no banco de dados
 func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 	corpoRequest, erro := io.ReadAll(r.Body)
 	if erro != nil {
-		http.Error(w, "Falha ao ler o corpo da requisição", http.StatusInternalServerError)
+		respostas.Erro(w, http.StatusUnprocessableEntity, erro)
 		return
 	}
 
 	var usuario modelos.Usuario
 	if erro = json.Unmarshal(corpoRequest, &usuario); erro != nil {
-		http.Error(w, "Erro ao decodificar JSON", http.StatusBadRequest)
+		respostas.Erro(w, http.StatusBadRequest, erro)
+		return
+	}
+
+	if erro = usuario.Preparar(); erro != nil {
+		respostas.Erro(w, http.StatusBadRequest, erro)
 		return
 	}
 
 	// Conecta ao banco de dados
 	db, erro := banco.Conectar()
 	if erro != nil {
-		http.Error(w, "Erro ao conectar ao banco de dados", http.StatusInternalServerError)
+		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 	defer db.Close()
 
 	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
-	usuarioID, erro := repositorio.Criar(usuario)
+	usuario.ID, erro = repositorio.Criar(usuario)
 	if erro != nil {
-		http.Error(w, "Erro ao inserir usuário no banco de dados", http.StatusInternalServerError)
+		respostas.Erro(w, http.StatusInternalServerError, erro)
 		return
 	}
 
-	// Retorna o ID do usuário inserido
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf("ID inserido: %d", usuarioID)))
+	respostas.JSON(w, http.StatusCreated, usuario)
 }
 
 // Busca todos os usuários cadastrados no banco de dados
 func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Buscando todos os usuários"))
+	nomeOuNick := strings.ToLower(r.URL.Query().Get("usuario"))
+
+	db, erro := banco.Conectar()
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
+	usuarios, erro := repositorio.Buscar(nomeOuNick)
+	if erro != nil {
+		respostas.Erro(w, http.StatusInternalServerError, erro)
+		return
+	}
+
+	respostas.JSON(w, http.StatusOK, usuarios)
 }
 
 // Busca um usuário cadastrado no banco de dados
